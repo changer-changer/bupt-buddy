@@ -1,7 +1,9 @@
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
 
-const SECRET = process.env.NEXTAUTH_SECRET || 'fallback-secret'
+function getSecret(): string {
+  return process.env.NEXTAUTH_SECRET || 'fallback-secret'
+}
 
 export interface TokenPayload {
   userId: string
@@ -10,12 +12,12 @@ export interface TokenPayload {
 }
 
 export function signToken(payload: TokenPayload): string {
-  return jwt.sign(payload, SECRET, { expiresIn: '7d' })
+  return jwt.sign(payload, getSecret(), { expiresIn: '7d' })
 }
 
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    return jwt.verify(token, SECRET) as TokenPayload
+    return jwt.verify(token, getSecret()) as TokenPayload
   } catch {
     return null
   }

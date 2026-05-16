@@ -4,8 +4,9 @@ const resendApiKey = process.env.RESEND_API_KEY
 const resend = resendApiKey ? new Resend(resendApiKey) : null
 
 export async function sendVerificationEmail(to: string, code: string) {
+  console.log(`[VERIFY CODE] To: ${to}, Code: ${code}`)
+
   if (!resend) {
-    console.log(`[EMAIL FALLBACK] To: ${to}, Code: ${code}`)
     return { success: true, fallback: true }
   }
 
@@ -19,7 +20,6 @@ export async function sendVerificationEmail(to: string, code: string) {
     return { success: true, fallback: false }
   } catch (err) {
     console.error('Resend error:', err)
-    console.log(`[EMAIL FALLBACK] To: ${to}, Code: ${code}`)
     return { success: true, fallback: true }
   }
 }

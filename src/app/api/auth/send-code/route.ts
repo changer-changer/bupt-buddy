@@ -7,7 +7,7 @@ function generateCode(): string {
 }
 
 function isBuptEmail(email: string): boolean {
-  return email.endsWith('@bupt.edu.cn')
+  return email.endsWith('@bupt.cn')
 }
 
 export async function POST(req: Request) {
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     }
 
     if (!isBuptEmail(email)) {
-      return NextResponse.json({ error: '仅支持 @bupt.edu.cn 邮箱' }, { status: 400 })
+      return NextResponse.json({ error: '仅支持 @bupt.cn 邮箱' }, { status: 400 })
     }
 
     const code = generateCode()

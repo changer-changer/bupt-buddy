@@ -66,14 +66,14 @@ export default function AuthPage() {
       <div className="w-full max-w-sm bg-white rounded-xl shadow-sm p-6 space-y-5">
         <div className="text-center">
           <h1 className="text-xl font-bold text-gray-900">北邮搭伙平台</h1>
-          <p className="text-sm text-gray-500 mt-1">仅支持 @bupt.edu.cn 邮箱</p>
+          <p className="text-sm text-gray-500 mt-1">仅支持 @bupt.cn 邮箱</p>
         </div>
 
         {step === 'email' ? (
           <div className="space-y-3">
             <input
               type="email"
-              placeholder="yourname@bupt.edu.cn"
+              placeholder="yourname@bupt.cn"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"

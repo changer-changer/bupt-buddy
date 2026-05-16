@@ -49,11 +49,13 @@ export async function POST(req: Request) {
 
     response.cookies.set('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
     })
+
+    console.log(`[LOGIN] user=${user.email} token_set=ok`)
 
     return response
   } catch {
