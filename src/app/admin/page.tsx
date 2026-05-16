@@ -26,8 +26,17 @@ interface Report {
 
 export default function AdminPage() {
   const router = useRouter()
+interface PendingApproval {
+  id: string
+  email: string
+  name: string | null
+  studentId: string | null
+  createdAt: string
+}
+
   const [activities, setActivities] = useState<Activity[]>([])
   const [reports, setReports] = useState<Report[]>([])
+  const [pending, setPending] = useState<PendingApproval[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -35,13 +44,15 @@ export default function AdminPage() {
     Promise.all([
       fetch('/api/admin/activities').then((r) => r.json()),
       fetch('/api/admin/reports').then((r) => r.json()),
+      fetch('/api/admin/pending').then((r) => r.json()),
     ])
-      .then(([activitiesData, reportsData]) => {
+      .then(([activitiesData, reportsData, pendingData]) => {
         if (activitiesData.error) {
           setError(activitiesData.error)
         } else {
           setActivities(activitiesData.activities || [])
           setReports(reportsData.reports || [])
+          setPending(pendingData.pending || [])
         }
         setLoading(false)
       })
@@ -61,6 +72,37 @@ export default function AdminPage() {
         setActivities((prev) =>
           prev.map((a) => (a.id === id ? { ...a, status: 'HIDDEN' } : a))
         )
+      }
+    } catch {
+      setError('操作失败')
+    }
+  }
+
+  const handleApprove = async (id: string) => {
+    try {
+      const res = await fetch('/api/admin/pending/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      if (res.ok) {
+        setPending((prev) => prev.filter((p) => p.id !== id))
+      }
+    } catch {
+      setError('审批失败')
+    }
+  }
+
+  const handleReject = async (id: string) => {
+    if (!confirm('确定拒绝该申请？')) return
+    try {
+      const res = await fetch('/api/admin/pending/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      if (res.ok) {
+        setPending((prev) => prev.filter((p) => p.id !== id))
       }
     } catch {
       setError('操作失败')
@@ -94,6 +136,44 @@ export default function AdminPage() {
       <Navbar />
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-4 space-y-6">
         <h1 className="text-lg font-bold">管理后台</h1>
+
+        <section>
+          <h2 className="text-sm font-medium text-gray-500 mb-2">
+            待审核注册 ({pending.length})
+          </h2>
+          {pending.length === 0 ? (
+            <p className="text-sm text-gray-400">暂无待审核申请</p>
+          ) : (
+            <div className="space-y-2">
+              {pending.map((p) => (
+                <div
+                  key={p.id}
+                  className="bg-white rounded-lg border border-gray-100 p-3 text-sm"
+                >
+                  <p className="font-medium">{p.email}</p>
+                  <p className="text-gray-500 text-xs mt-0.5">
+                    {p.name || '未填姓名'} | 学号：{p.studentId || '未填'} |{' '}
+                    {format(new Date(p.createdAt), 'MM-dd HH:mm', { locale: zhCN })}
+                  </p>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => handleApprove(p.id)}
+                      className="text-xs px-2 py-1 bg-green-50 text-green-600 rounded hover:bg-green-100"
+                    >
+                      通过
+                    </button>
+                    <button
+                      onClick={() => handleReject(p.id)}
+                      className="text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
+                    >
+                      拒绝
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
         <section>
           <h2 className="text-sm font-medium text-gray-500 mb-2">

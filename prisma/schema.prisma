@@ -58,6 +58,18 @@ model Registration {
   @@map("registrations")
 }
 
+model PendingApproval {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  studentId String?  @map("student_id")
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("pending_approvals")
+}
+
 model Report {
   id         String   @id @default(uuid())
   activityId String   @map("activity_id")
