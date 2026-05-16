@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  emailVerified DateTime?
+  nickname      String?
+  role          String    @default("USER")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  activities     Activity[]
+  registrations  Registration[]
+  reportsMade    Report[]   @relation("Reporter")
+
+  @@map("users")
+}
+
+model Activity {
+  id             String   @id @default(uuid())
+  creatorId      String   @map("creator_id")
+  title          String
+  location       String
+  meetupPoint    String   @map("meetup_point")
+  eventTime      DateTime @map("event_time")
+  maxParticipants Int     @map("max_participants")
+  status         String   @default("ACTIVE")
+  description    String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  creator       User           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  registrations Registration[]
+  reports       Report[]
+
+  @@map("activities")
+}
+
+model Registration {
+  id            String   @id @default(uuid())
+  activityId    String   @map("activity_id")
+  userId        String   @map("user_id")
+  contactWechat String?  @map("contact_wechat")
+  contactPhone  String?  @map("contact_phone")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, userId])
+  @@map("registrations")
+}
+
+model Report {
+  id         String   @id @default(uuid())
+  activityId String   @map("activity_id")
+  reporterId String   @map("reporter_id")
+  reason     String
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  reporter User     @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
