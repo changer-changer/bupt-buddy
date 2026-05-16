@@ -10,13 +10,11 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [fallbackMsg, setFallbackMsg] = useState('')
-  const [showCode, setShowCode] = useState('')
   const router = useRouter()
 
   const sendCode = async () => {
     setError('')
     setFallbackMsg('')
-    setShowCode('')
     setLoading(true)
     try {
       const res = await fetch('/api/auth/send-code', {
@@ -29,8 +27,8 @@ export default function AuthPage() {
         setError(data.error || '发送失败')
       } else {
         setStep('code')
-        if (data.code) {
-          setShowCode(data.code)
+        if (data.fallback) {
+          setFallbackMsg('邮件服务未配置，请在服务器控制台查看验证码')
         }
       }
     } catch {
@@ -112,13 +110,6 @@ export default function AuthPage() {
             >
               返回修改邮箱
             </button>
-          </div>
-        )}
-
-        {showCode && (
-          <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-center">
-            <p className="text-xs text-green-700 mb-1">你的验证码</p>
-            <p className="text-2xl font-bold text-green-800 tracking-widest">{showCode}</p>
           </div>
         )}
 
