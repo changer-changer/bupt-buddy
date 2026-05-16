@@ -29,8 +29,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: result.fallback ? '验证码已生成（控制台查看）' : '验证码已发送',
+      message: result.fallback ? '验证码已生成' : '验证码已发送（如未收到请见下方）',
       fallback: result.fallback,
+      code,
     })
   } catch {
     return NextResponse.json({ error: '发送失败' }, { status: 500 })
