@@ -8,19 +8,20 @@ const PRESET_TITLES = ['吃饭', '健身', '打球', '自习', '逛北京', '看
 
 export default function NewActivityPage() {
   const router = useRouter()
-  const [title, setTitle] = useState('')
-  const [location, setLocation] = useState('')
-  const [meetupPoint, setMeetupPoint] = useState('')
-  const [eventTime, setEventTime] = useState('')
-  const [maxParticipants, setMaxParticipants] = useState(4)
-  const [description, setDescription] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
 
   const now = new Date()
   const defaultTime = new Date(now.getTime() + 2 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 16)
+
+  const [title, setTitle] = useState('')
+  const [location, setLocation] = useState('')
+  const [meetupPoint, setMeetupPoint] = useState('')
+  const [eventTime, setEventTime] = useState(defaultTime)
+  const [maxParticipants, setMaxParticipants] = useState(4)
+  const [description, setDescription] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const submit = async () => {
     setError('')
@@ -116,7 +117,7 @@ export default function NewActivityPage() {
             <label className="block text-sm font-medium mb-1">时间</label>
             <input
               type="datetime-local"
-              defaultValue={defaultTime}
+              value={eventTime}
               onChange={(e) => setEventTime(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
