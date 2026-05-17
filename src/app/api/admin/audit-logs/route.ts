@@ -12,21 +12,17 @@ export async function GET(req: Request) {
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
   const pageSize = Math.min(50, Math.max(1, parseInt(searchParams.get('pageSize') || '20', 10)))
 
-  const [reports, total] = await Promise.all([
-    prisma.report.findMany({
-      where: { status: 'PENDING' },
+  const [logs, total] = await Promise.all([
+    prisma.auditLog.findMany({
       include: {
-        activity: {
-          select: { title: true, creatorId: true, status: true },
-        },
-        reporter: { select: { email: true, nickname: true } },
+        actor: { select: { nickname: true, email: true } },
       },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
-    prisma.report.count({ where: { status: 'PENDING' } }),
+    prisma.auditLog.count(),
   ])
 
-  return NextResponse.json({ reports, total, page, pageSize })
+  return NextResponse.json({ logs, total, page, pageSize })
 }

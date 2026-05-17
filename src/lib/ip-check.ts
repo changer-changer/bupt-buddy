@@ -19,6 +19,8 @@ const BUPT_RANGES = [
   '222.28.0.0/16',
   '222.29.0.0/16',
   '123.121.0.0/16',
+  '59.64.0.0/16',
+  '118.229.0.0/16',
 ]
 
 export function isBuptIp(ip: string): boolean {

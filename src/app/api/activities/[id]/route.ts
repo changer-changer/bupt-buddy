@@ -11,7 +11,7 @@ export async function GET(req: Request, { params }: Params) {
   const user = await getCurrentUser()
 
   const activity = await prisma.activity.findUnique({
-    where: { id },
+    where: { id, deletedAt: null },
     include: {
       creator: { select: { id: true, nickname: true, email: true } },
       registrations: {
@@ -34,13 +34,35 @@ export async function GET(req: Request, { params }: Params) {
   const isEnded = eventTime < now || activity.status === 'ENDED'
   const isWithin24hAfterEnd = isEnded && now.getTime() - eventTime.getTime() < 24 * 60 * 60 * 1000
 
-  let registrations = activity.registrations
-  if (!isCreator && !isAdmin) {
-    if (isEnded && !isWithin24hAfterEnd) {
-      registrations = []
-    } else if (!hasJoined) {
-      registrations = []
-    }
+  const rawRegistrations = activity.registrations
+
+  type RegItem = {
+    id: string
+    userId: string
+    user: { id: string; nickname: string | null }
+    contactWechat: string | null
+    contactPhone: string | null
+  }
+
+  let registrations: RegItem[]
+  if (isCreator || isAdmin) {
+    registrations = rawRegistrations.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      user: r.user,
+      contactWechat: r.contactWechat,
+      contactPhone: r.contactPhone,
+    }))
+  } else if (hasJoined || (isEnded && isWithin24hAfterEnd)) {
+    registrations = rawRegistrations.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      user: r.user,
+      contactWechat: null,
+      contactPhone: null,
+    }))
+  } else {
+    registrations = []
   }
 
   return NextResponse.json({
@@ -63,7 +85,7 @@ export async function DELETE(req: Request, { params }: Params) {
   }
 
   const activity = await prisma.activity.findUnique({
-    where: { id },
+    where: { id, deletedAt: null },
     select: { creatorId: true },
   })
 

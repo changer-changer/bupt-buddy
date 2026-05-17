@@ -192,20 +192,24 @@ export default function ActivityDetailPage() {
             发起人：{activity.creator.nickname || activity.creator.email.split('@')[0]}
           </div>
 
-          {activity.isCreator && activity.registrations.length > 0 && (
+          {(activity.isCreator || activity.hasJoined) && activity.registrations.length > 0 && (
             <div className="pt-2 border-t border-gray-100">
-              <h3 className="text-sm font-medium mb-2">报名成员</h3>
+              <h3 className="text-sm font-medium mb-2">
+                报名成员 ({activity.registrations.length})
+              </h3>
               <div className="space-y-2">
                 {activity.registrations.map((r) => (
                   <div key={r.id} className="text-sm bg-gray-50 rounded-lg p-3">
                     <p className="font-medium">
                       {r.user.nickname || '未设置昵称'}
                     </p>
-                    <div className="text-gray-500 text-xs mt-1 space-y-0.5">
-                      {r.contactWechat && <p>微信：{r.contactWechat}</p>}
-                      {r.contactPhone && <p>电话：{r.contactPhone}</p>}
-                      {!r.contactWechat && !r.contactPhone && <p>未留联系方式</p>}
-                    </div>
+                    {activity.isCreator && (
+                      <div className="text-gray-500 text-xs mt-1 space-y-0.5">
+                        {r.contactWechat && <p>微信：{r.contactWechat}</p>}
+                        {r.contactPhone && <p>电话：{r.contactPhone}</p>}
+                        {!r.contactWechat && !r.contactPhone && <p>未留联系方式</p>}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -215,7 +219,7 @@ export default function ActivityDetailPage() {
           {!activity.isCreator && activity.hasJoined && (
             <div className="pt-2 border-t border-gray-100">
               <div className="p-3 bg-green-50 text-green-700 text-sm rounded-lg">
-                ✅ 你已报名成功！发起人联系方式将在报名列表中可见。
+                ✅ 你已报名成功！可以在上方查看其他成员名字，联系方式仅发起人可见。
               </div>
             </div>
           )}

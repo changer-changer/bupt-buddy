@@ -13,12 +13,14 @@ model User {
   emailVerified DateTime?
   nickname      String?
   role          String    @default("USER")
+  deletedAt     DateTime? @map("deleted_at")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   activities     Activity[]
   registrations  Registration[]
   reportsMade    Report[]   @relation("Reporter")
+  auditLogs      AuditLog[] @relation("Actor")
 
   @@map("users")
 }
@@ -33,6 +35,7 @@ model Activity {
   maxParticipants Int     @map("max_participants")
   status         String   @default("ACTIVE")
   description    String?
+  deletedAt      DateTime? @map("deleted_at")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -82,4 +85,21 @@ model Report {
   reporter User     @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
 
   @@map("reports")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String?  @map("actor_id")
+  action    String
+  targetType String  @map("target_type")
+  targetId  String?  @map("target_id")
+  details   String?
+  ip        String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  actor User? @relation("Actor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([actorId])
+  @@map("audit_logs")
 }

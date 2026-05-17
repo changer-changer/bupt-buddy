@@ -30,6 +30,12 @@ export default function NewActivityPage() {
       return
     }
 
+    const eventDate = new Date(eventTime)
+    if (isNaN(eventDate.getTime())) {
+      setError('时间格式错误')
+      return
+    }
+
     setLoading(true)
     try {
       const res = await fetch('/api/activities', {
@@ -39,20 +45,29 @@ export default function NewActivityPage() {
           title,
           location,
           meetupPoint,
-          eventTime: new Date(eventTime).toISOString(),
-          maxParticipants,
-          description,
+          eventTime: eventDate.toISOString(),
+          maxParticipants: Number(maxParticipants) || 4,
+          description: description || undefined,
         }),
       })
-      const data = await res.json()
+
+      let data: { error?: string; activity?: unknown } = {}
+      try {
+        data = await res.json()
+      } catch {
+        setError('服务器返回异常')
+        setLoading(false)
+        return
+      }
+
       if (!res.ok) {
-        setError(data.error || '创建失败')
+        setError(data.error || `创建失败 (${res.status})`)
       } else {
         router.push('/')
         router.refresh()
       }
-    } catch {
-      setError('网络错误')
+    } catch (err) {
+      setError('网络错误: ' + (err instanceof Error ? err.message : '未知'))
     } finally {
       setLoading(false)
     }

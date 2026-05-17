@@ -17,6 +17,7 @@ export async function GET() {
 
   const activities = await prisma.activity.findMany({
     where: {
+      deletedAt: null,
       status: { in: ['ACTIVE', 'FULL'] },
       eventTime: { gte: new Date(now.getTime() - 60 * 60 * 1000) },
     },
@@ -44,6 +45,7 @@ export async function POST(req: Request) {
     const recentCount = await prisma.activity.count({
       where: {
         creatorId: user.userId,
+        deletedAt: null,
         createdAt: { gte: twentyFourHoursAgo },
       },
     })

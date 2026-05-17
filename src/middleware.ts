@@ -18,7 +18,7 @@ async function verifyToken(token: string) {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  const publicPaths = ['/', '/auth', '/api/auth/send-code', '/api/auth/verify-code', '/api/auth/me']
+  const publicPaths = ['/', '/auth', '/api/auth/register', '/api/auth/send-code', '/api/auth/verify-code', '/api/auth/me', '/api/auth/check-ip', '/api/admin/setup']
   if (publicPaths.includes(pathname)) {
     return NextResponse.next()
   }
