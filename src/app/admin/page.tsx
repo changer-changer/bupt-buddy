@@ -154,8 +154,7 @@ export default function AdminPage() {
 
   // Admin guard verification modal
   const [showGuardModal, setShowGuardModal] = useState(false)
-  const [guardEmail, setGuardEmail] = useState('')
-  const [guardCode, setGuardCode] = useState('')
+  const [guardPassword, setGuardPassword] = useState('')
   const [guardLoading, setGuardLoading] = useState(false)
   const [guardError, setGuardError] = useState('')
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
@@ -169,8 +168,8 @@ export default function AdminPage() {
   const isGuardError = (res: Response) => res.status === 403
 
   const handleGuardVerify = async () => {
-    if (!guardEmail || !guardCode) {
-      setGuardError('请填写邮箱和验证码')
+    if (!guardPassword) {
+      setGuardError('请输入密码')
       return
     }
     setGuardLoading(true)
@@ -179,12 +178,12 @@ export default function AdminPage() {
       const res = await fetch('/api/auth/admin-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: guardEmail, code: guardCode }),
+        body: JSON.stringify({ password: guardPassword }),
       })
       const data = await res.json()
       if (res.ok && data.success) {
         setShowGuardModal(false)
-        setGuardCode('')
+        setGuardPassword('')
         if (pendingAction) {
           pendingAction()
           setPendingAction(null)
@@ -655,64 +654,22 @@ export default function AdminPage() {
             <div className="bg-white rounded-xl max-w-sm w-full p-5">
               <h3 className="font-bold text-gray-900 mb-1">管理员身份验证</h3>
               <p className="text-sm text-gray-500 mb-4">
-                关键操作需要二次验证。请输入管理员邮箱及验证码。
+                关键操作需要二次验证。请输入管理员密码。
               </p>
               {guardError && (
                 <div className="mb-3 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
                   {guardError}
                 </div>
               )}
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">管理员邮箱</label>
-                  <input
-                    type="email"
-                    value={guardEmail}
-                    onChange={(e) => setGuardEmail(e.target.value)}
-                    placeholder="admin@bupt.cn"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">验证码</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={guardCode}
-                      onChange={(e) => setGuardCode(e.target.value)}
-                      placeholder="6位验证码"
-                      maxLength={6}
-                      className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      onClick={async () => {
-                        if (!guardEmail) {
-                          setGuardError('请先输入邮箱')
-                          return
-                        }
-                        try {
-                          const res = await fetch('/api/auth/send-code', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ email: guardEmail }),
-                          })
-                          const data = await res.json()
-                          if (res.ok) {
-                            setGuardError('')
-                            alert('验证码已发送')
-                          } else {
-                            setGuardError(data.error || '发送失败')
-                          }
-                        } catch {
-                          setGuardError('网络错误')
-                        }
-                      }}
-                      className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 whitespace-nowrap"
-                    >
-                      获取验证码
-                    </button>
-                  </div>
-                </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">密码</label>
+                <input
+                  type="password"
+                  value={guardPassword}
+                  onChange={(e) => setGuardPassword(e.target.value)}
+                  placeholder="请输入密码"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
               <div className="flex gap-2 mt-5">
                 <button

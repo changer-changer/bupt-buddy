@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { verifyCode } from '@/lib/verify-code-store'
-import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/jwt'
 import { signAdminActionToken } from '@/lib/admin-token'
 import { logAdminAction } from '@/lib/audit-log'
 import { getClientIp } from '@/lib/ip-check'
+
+const ADMIN_ACTION_PASSWORD = process.env.ADMIN_ACTION_PASSWORD || 'czxCZX200686!'
 
 export async function POST(req: Request) {
   try {
@@ -13,32 +13,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: '无权限' }, { status: 403 })
     }
 
-    const { email, code } = await req.json()
-    if (!email || !code) {
-      return NextResponse.json({ error: '邮箱和验证码必填' }, { status: 400 })
+    const { password } = await req.json()
+    if (!password) {
+      return NextResponse.json({ error: '密码必填' }, { status: 400 })
     }
 
-    const admin = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { email: true },
-    })
-
-    if (!admin || admin.email !== email) {
-      return NextResponse.json({ error: '只能使用自己的管理员邮箱验证' }, { status: 403 })
+    if (password !== ADMIN_ACTION_PASSWORD) {
+      return NextResponse.json({ error: '密码错误' }, { status: 400 })
     }
 
-    if (!verifyCode(email, code)) {
-      return NextResponse.json({ error: '验证码错误或已过期' }, { status: 400 })
-    }
-
-    const actionToken = signAdminActionToken(user.userId, email)
+    const actionToken = signAdminActionToken(user.userId, user.email)
 
     await logAdminAction({
       actorId: user.userId,
       action: 'ADMIN_GUARD_VERIFY',
       targetType: 'Admin',
       targetId: user.userId,
-      details: `管理员二次验证通过: ${email}`,
+      details: `管理员二次验证通过`,
       ip: getClientIp(req),
     })
 
