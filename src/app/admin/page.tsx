@@ -191,6 +191,22 @@ export default function AdminPage() {
     }
   }
 
+  const handleDeleteActivity = async (id: string, title: string) => {
+    if (!confirm(`确定删除活动「${title}」？此操作不可撤销。`)) return
+    try {
+      const res = await fetch(`/api/admin/activities/${id}/delete`, { method: 'POST' })
+      if (res.ok) {
+        activitiesQuery.refresh()
+        setStats((s) => ({ ...s, activities: Math.max(0, s.activities - 1) }))
+      } else {
+        const data = await res.json()
+        alert(data.error || '删除失败')
+      }
+    } catch {
+      alert('删除失败')
+    }
+  }
+
   const handleApprove = async (id: string) => {
     try {
       const res = await fetch('/api/admin/pending/approve', {
@@ -462,14 +478,22 @@ export default function AdminPage() {
                             )}
                           </p>
                         </div>
-                        {a.status !== 'HIDDEN' && a.status !== 'CANCELLED' && (
+                        <div className="flex gap-2">
+                          {a.status !== 'HIDDEN' && a.status !== 'CANCELLED' && (
+                            <button
+                              onClick={() => handleHide(a.id)}
+                              className="text-xs px-2 py-1 bg-orange-50 text-orange-600 rounded hover:bg-orange-100"
+                            >
+                              隐藏
+                            </button>
+                          )}
                           <button
-                            onClick={() => handleHide(a.id)}
+                            onClick={() => handleDeleteActivity(a.id, a.title)}
                             className="text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
                           >
-                            隐藏
+                            删除
                           </button>
-                        )}
+                        </div>
                       </div>
                       <span
                         className={`inline-block mt-1 text-xs px-1.5 py-0.5 rounded ${
