@@ -152,11 +152,52 @@ export default function AdminPage() {
   const [userSearch, setUserSearch] = useState('')
   const [activitySearch, setActivitySearch] = useState('')
 
+  // Admin guard verification modal
+  const [showGuardModal, setShowGuardModal] = useState(false)
+  const [guardEmail, setGuardEmail] = useState('')
+  const [guardCode, setGuardCode] = useState('')
+  const [guardLoading, setGuardLoading] = useState(false)
+  const [guardError, setGuardError] = useState('')
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+
   const usersQuery = usePaginatedData<UserItem>('/api/admin/users', tab === 'users', userSearch)
   const activitiesQuery = usePaginatedData<Activity>('/api/admin/activities', tab === 'activities', activitySearch)
   const reportsQuery = usePaginatedData<Report>('/api/admin/reports', tab === 'reports')
   const pendingQuery = usePaginatedData<PendingApproval>('/api/admin/pending', tab === 'pending')
   const auditQuery = usePaginatedData<AuditLogItem>('/api/admin/audit-logs', tab === 'audit')
+
+  const isGuardError = (res: Response) => res.status === 403
+
+  const handleGuardVerify = async () => {
+    if (!guardEmail || !guardCode) {
+      setGuardError('请填写邮箱和验证码')
+      return
+    }
+    setGuardLoading(true)
+    setGuardError('')
+    try {
+      const res = await fetch('/api/auth/admin-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: guardEmail, code: guardCode }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        setShowGuardModal(false)
+        setGuardCode('')
+        if (pendingAction) {
+          pendingAction()
+          setPendingAction(null)
+        }
+      } else {
+        setGuardError(data.error || '验证失败')
+      }
+    } catch {
+      setGuardError('网络错误')
+    } finally {
+      setGuardLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (tab !== 'overview') return
@@ -181,78 +222,128 @@ export default function AdminPage() {
 
   const handleHide = async (id: string) => {
     if (!confirm('确定隐藏该活动？')) return
-    try {
-      const res = await fetch(`/api/admin/activities/${id}/hide`, { method: 'POST' })
-      if (res.ok) {
-        activitiesQuery.refresh()
+    const doHide = async () => {
+      try {
+        const res = await fetch(`/api/admin/activities/${id}/hide`, { method: 'POST' })
+        if (isGuardError(res)) {
+          const data = await res.json()
+          setGuardError(data.error || '')
+          setPendingAction(() => () => handleHide(id))
+          setShowGuardModal(true)
+          return
+        }
+        if (res.ok) {
+          activitiesQuery.refresh()
+        }
+      } catch {
+        alert('操作失败')
       }
-    } catch {
-      alert('操作失败')
     }
+    doHide()
   }
 
   const handleDeleteActivity = async (id: string, title: string) => {
     if (!confirm(`确定删除活动「${title}」？此操作不可撤销。`)) return
-    try {
-      const res = await fetch(`/api/admin/activities/${id}/delete`, { method: 'POST' })
-      if (res.ok) {
-        activitiesQuery.refresh()
-        setStats((s) => ({ ...s, activities: Math.max(0, s.activities - 1) }))
-      } else {
-        const data = await res.json()
-        alert(data.error || '删除失败')
+    const doDelete = async () => {
+      try {
+        const res = await fetch(`/api/admin/activities/${id}/delete`, { method: 'POST' })
+        if (isGuardError(res)) {
+          const data = await res.json()
+          setGuardError(data.error || '')
+          setPendingAction(() => () => handleDeleteActivity(id, title))
+          setShowGuardModal(true)
+          return
+        }
+        if (res.ok) {
+          activitiesQuery.refresh()
+          setStats((s) => ({ ...s, activities: Math.max(0, s.activities - 1) }))
+        } else {
+          const data = await res.json()
+          alert(data.error || '删除失败')
+        }
+      } catch {
+        alert('删除失败')
       }
-    } catch {
-      alert('删除失败')
     }
+    doDelete()
   }
 
   const handleApprove = async (id: string) => {
-    try {
-      const res = await fetch('/api/admin/pending/approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      })
-      if (res.ok) {
-        pendingQuery.refresh()
-        setStats((s) => ({ ...s, pending: Math.max(0, s.pending - 1) }))
+    const doApprove = async () => {
+      try {
+        const res = await fetch('/api/admin/pending/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        })
+        if (isGuardError(res)) {
+          const data = await res.json()
+          setGuardError(data.error || '')
+          setPendingAction(() => () => handleApprove(id))
+          setShowGuardModal(true)
+          return
+        }
+        if (res.ok) {
+          pendingQuery.refresh()
+          setStats((s) => ({ ...s, pending: Math.max(0, s.pending - 1) }))
+        }
+      } catch {
+        alert('审批失败')
       }
-    } catch {
-      alert('审批失败')
     }
+    doApprove()
   }
 
   const handleReject = async (id: string) => {
     if (!confirm('确定拒绝该申请？')) return
-    try {
-      const res = await fetch('/api/admin/pending/reject', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      })
-      if (res.ok) {
-        pendingQuery.refresh()
-        setStats((s) => ({ ...s, pending: Math.max(0, s.pending - 1) }))
+    const doReject = async () => {
+      try {
+        const res = await fetch('/api/admin/pending/reject', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        })
+        if (isGuardError(res)) {
+          const data = await res.json()
+          setGuardError(data.error || '')
+          setPendingAction(() => () => handleReject(id))
+          setShowGuardModal(true)
+          return
+        }
+        if (res.ok) {
+          pendingQuery.refresh()
+          setStats((s) => ({ ...s, pending: Math.max(0, s.pending - 1) }))
+        }
+      } catch {
+        alert('操作失败')
       }
-    } catch {
-      alert('操作失败')
     }
+    doReject()
   }
 
   const handleDeleteUser = async (id: string, email: string) => {
     if (!confirm(`确定删除用户 ${email}？此操作不可撤销。`)) return
-    try {
-      const res = await fetch(`/api/admin/users/${id}/delete`, { method: 'POST' })
-      if (res.ok) {
-        usersQuery.refresh()
-      } else {
-        const data = await res.json()
-        alert(data.error || '删除失败')
+    const doDelete = async () => {
+      try {
+        const res = await fetch(`/api/admin/users/${id}/delete`, { method: 'POST' })
+        if (isGuardError(res)) {
+          const data = await res.json()
+          setGuardError(data.error || '')
+          setPendingAction(() => () => handleDeleteUser(id, email))
+          setShowGuardModal(true)
+          return
+        }
+        if (res.ok) {
+          usersQuery.refresh()
+        } else {
+          const data = await res.json()
+          alert(data.error || '删除失败')
+        }
+      } catch {
+        alert('删除失败')
       }
-    } catch {
-      alert('删除失败')
     }
+    doDelete()
   }
 
   const tabs: { key: Tab; label: string }[] = [
@@ -556,6 +647,94 @@ export default function AdminPage() {
               </>
             )}
           </section>
+        )}
+
+        {/* Admin Guard Modal */}
+        {showGuardModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+            <div className="bg-white rounded-xl max-w-sm w-full p-5">
+              <h3 className="font-bold text-gray-900 mb-1">管理员身份验证</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                关键操作需要二次验证。请输入管理员邮箱及验证码。
+              </p>
+              {guardError && (
+                <div className="mb-3 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+                  {guardError}
+                </div>
+              )}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">管理员邮箱</label>
+                  <input
+                    type="email"
+                    value={guardEmail}
+                    onChange={(e) => setGuardEmail(e.target.value)}
+                    placeholder="admin@bupt.cn"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">验证码</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={guardCode}
+                      onChange={(e) => setGuardCode(e.target.value)}
+                      placeholder="6位验证码"
+                      maxLength={6}
+                      className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      onClick={async () => {
+                        if (!guardEmail) {
+                          setGuardError('请先输入邮箱')
+                          return
+                        }
+                        try {
+                          const res = await fetch('/api/auth/send-code', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: guardEmail }),
+                          })
+                          const data = await res.json()
+                          if (res.ok) {
+                            setGuardError('')
+                            alert('验证码已发送')
+                          } else {
+                            setGuardError(data.error || '发送失败')
+                          }
+                        } catch {
+                          setGuardError('网络错误')
+                        }
+                      }}
+                      className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 whitespace-nowrap"
+                    >
+                      获取验证码
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-5">
+                <button
+                  onClick={() => {
+                    setShowGuardModal(false)
+                    setPendingAction(null)
+                    setGuardError('')
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleGuardVerify}
+                  disabled={guardLoading}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {guardLoading ? '验证中...' : '验证'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
     </>

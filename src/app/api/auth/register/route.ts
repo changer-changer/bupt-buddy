@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { signToken } from '@/lib/jwt'
 import { isBuptIp, getClientIp } from '@/lib/ip-check'
+import { rateLimit } from '@/lib/rate-limit'
 
 function generateCampusEmail(name: string): string {
   const timestamp = Date.now().toString(36)
@@ -10,6 +11,13 @@ function generateCampusEmail(name: string): string {
 }
 
 export async function POST(req: Request) {
+  const ip = getClientIp(req)
+
+  const limit = rateLimit(ip, 'campus-register', { limit: 10, windowMs: 3_600_000 })
+  if (!limit.success) {
+    return NextResponse.json({ error: '操作太频繁，请稍后再试' }, { status: 429 })
+  }
+
   try {
     const { name } = await req.json()
 
@@ -17,7 +25,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: '姓名必填（至少2个字）' }, { status: 400 })
     }
 
-    const ip = getClientIp(req)
     const onCampus = isBuptIp(ip)
 
     console.log('[REGISTER] name=' + name.trim() + ' ip=' + ip + ' onCampus=' + onCampus)
@@ -29,22 +36,27 @@ export async function POST(req: Request) {
       )
     }
 
-    // Try to find existing user by nickname (campus login)
+    const adminExists = await prisma.user.findFirst({ where: { role: 'ADMIN', deletedAt: null } })
+    if (!adminExists) {
+      return NextResponse.json(
+        { error: '系统尚未初始化管理员，请使用邮箱验证方式注册' },
+        { status: 403 }
+      )
+    }
+
     const trimmedName = name.trim()
     let user = await prisma.user.findFirst({
-      where: { nickname: trimmedName },
+      where: { nickname: trimmedName, deletedAt: null },
     })
 
     if (!user) {
-      const adminExists = await prisma.user.findFirst({ where: { role: 'ADMIN' } })
       const email = generateCampusEmail(trimmedName)
-
       user = await prisma.user.create({
         data: {
           email,
           emailVerified: new Date(),
           nickname: trimmedName,
-          role: adminExists ? 'USER' : 'ADMIN',
+          role: 'USER',
         },
       })
       console.log('[REGISTER] created new user id=' + user.id + ' email=' + email)
